@@ -1,1 +1,66 @@
+from PIL import Image
+import random
 
+def encrypt_image(image_path, operation, key=None):
+    img = Image.open(image_path)
+    pixels = list(img.getdata())
+    width, height = img.size
+    encrypted_pixels = []
+
+    if operation == "swap":
+        if key is None:
+            key = random.randint(0, len(pixels) - 1)
+        random.seed(key)
+        pixel_indices = list(range(len(pixels)))
+        random.shuffle(pixel_indices)
+        encrypted_pixels = [pixels[i] for i in pixel_indices]
+
+    elif operation == "math":
+        if key is None:
+            key = random.randint(1, 255)
+        encrypted_pixels = [(pixel[0] + key % 256, pixel[1] + key % 256, pixel[2] + key % 256) for pixel in pixels]
+
+    encrypted_img = Image.new(img.mode, img.size)
+    encrypted_img.putdata(encrypted_pixels)
+    return encrypted_img, key
+
+def decrypt_image(encrypted_img, operation, key):
+    pixels = list(encrypted_img.getdata())
+    width, height = encrypted_img.size
+    decrypted_pixels = []
+
+    if operation == "swap":
+        random.seed(key)
+        pixel_indices = list(range(len(pixels)))
+        random.shuffle(pixel_indices)
+        decrypted_pixels = [None] * len(pixels)
+        for original_index, shuffled_index in enumerate(pixel_indices):
+            decrypted_pixels[shuffled_index] = pixels[original_index]
+
+    elif operation == "math":
+        decrypted_pixels = [(pixel[0] - key % 256, pixel[1] - key % 256, pixel[2] - key % 256) for pixel in pixels]
+
+    decrypted_img = Image.new(encrypted_img.mode, encrypted_img.size)
+    decrypted_img.putdata(decrypted_pixels)
+    return decrypted_img
+
+def main():
+    image_path = input("Enter the path to the image: ")
+    operation = input("Choose an operation (swap/math): ").lower()
+
+    if operation not in ["swap", "math"]:
+        print("Invalid operation. Choose 'swap' or 'math'.")
+        return
+
+    encrypted_img, key = encrypt_image(image_path, operation)
+    encrypted_img.show()
+    encrypted_img.save("encrypted_image.png")
+    print(f"Image encrypted with key: {key}")
+
+    decrypted_img = decrypt_image(encrypted_img, operation, key)
+    decrypted_img.show()
+    decrypted_img.save("decrypted_image.png")
+    print("Image decrypted successfully.")
+
+if __name__ == "__main__":
+    main()
